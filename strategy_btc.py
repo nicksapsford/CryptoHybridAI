@@ -202,6 +202,14 @@ class Trade:
 
     def close(self, exit_price: float, reason: str) -> None:
         """Record the exit details and calculate profit/loss."""
+        # stop-fill fidelity (Job 10, 24 Jul 2026, Nick-confirmed 23 Jul):
+        # on a STOP_LOSS exit only, fill at the stop level rather than the
+        # observed price, which may have gapped through the stop between polls.
+        if reason == "STOP_LOSS":
+            if self.direction == "LONG":
+                exit_price = max(self.stop_loss, exit_price)
+            else:  # SHORT
+                exit_price = min(self.stop_loss, exit_price)
         self.exit_price  = exit_price
         self.exit_time   = datetime.now(timezone.utc)
         self.exit_reason = reason
