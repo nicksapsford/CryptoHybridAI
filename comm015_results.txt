@@ -1,0 +1,61 @@
+
+======================================================================
+  BTC  (BTC-GBP)
+======================================================================
+  baseline_triple    : n=61   1.02/day  win=47.5%  EV=£-2.614 (-0.871%)  avgW=£+1.11 avgL=£-2.95  maxCL=19  false=43%  overlap=21%
+  baseline_hybrid    : n=73   1.22/day  win=47.9%  EV=£-2.528 (-0.843%)  avgW=£+0.96 avgL=£-2.84  maxCL=22  false=45%  overlap=19%
+  donchian_10        : n=135  2.26/day  win=43.0%  EV=£-2.617 (-0.872%)  avgW=£+0.67 avgL=£-2.80  maxCL=48  false=55%  overlap=25%
+  donchian_14        : n=115  1.93/day  win=47.0%  EV=£-2.487 (-0.829%)  avgW=£+0.67 avgL=£-2.69  maxCL=41  false=56%  overlap=27%
+  donchian_20        : n=96   1.61/day  win=50.0%  EV=£-2.464 (-0.821%)  avgW=£+0.79 avgL=£-2.64  maxCL=41  false=56%  overlap=27%
+  donbb_10           : n=33   0.55/day  win=51.5%  EV=£-2.463 (-0.821%)  avgW=£+0.21 avgL=£-2.55  maxCL=25  false=48%  overlap=36%
+  donbb_14           : n=29   0.49/day  win=58.6%  EV=£-2.446 (-0.815%)  avgW=£+0.21 avgL=£-2.54  maxCL=24  false=48%  overlap=38%
+  donbb_20           : n=27   0.45/day  win=55.6%  EV=£-2.579 (-0.860%)  avgW=£+0.00 avgL=£-2.58  maxCL=27  false=48%  overlap=37%
+  span=59.7 days
+
+  -- Comparison 4: RSI divergence on BTC hybrid-baseline signals --
+     NONE    : n=59  win=51%  EV=-0.867%
+     BULLISH : n=12  win=42%  EV=-0.703%
+     BEARISH : n=2   win=0%  EV=-0.959%
+     signal-vs-div CONFLICT: n=13 win=31%
+     signal-vs-div ALIGNED : n=1 win=100%
+
+======================================================================
+  ETH  (ETH-GBP)
+======================================================================
+  baseline_triple    : 0 signals
+  baseline_hybrid    : 0 signals
+  donchian_10        : n=134  2.24/day  win=44.0%  EV=£-2.612 (-0.871%)  avgW=£+2.26 avgL=£-3.01  maxCL=33  false=57%  overlap=23%
+  donchian_14        : n=108  1.81/day  win=45.4%  EV=£-2.608 (-0.869%)  avgW=£+2.08 avgL=£-3.03  maxCL=51  false=58%  overlap=25%
+  donchian_20        : n=94   1.57/day  win=43.6%  EV=£-2.634 (-0.878%)  avgW=£+2.08 avgL=£-3.07  maxCL=53  false=59%  overlap=24%
+  donbb_10           : n=38   0.64/day  win=55.3%  EV=£-2.495 (-0.832%)  avgW=£+1.83 avgL=£-3.15  maxCL=23  false=50%  overlap=37%
+  donbb_14           : n=35   0.59/day  win=57.1%  EV=£-2.513 (-0.838%)  avgW=£+1.83 avgL=£-3.24  maxCL=22  false=49%  overlap=37%
+  donbb_20           : n=31   0.52/day  win=54.8%  EV=£-2.532 (-0.844%)  avgW=£+1.83 avgL=£-3.37  maxCL=19  false=45%  overlap=39%
+  span=59.7 days
+
+  -- Comparison 4: RSI divergence on ETH hybrid-baseline signals --
+     NONE    : n=0
+     BULLISH : n=0
+     BEARISH : n=0
+
+======================================================================
+  COMPARISON TABLE (Donchian/Don+BB shown at N=14)
+======================================================================
+  Metric          | Baseline(3SSL) |   Hybrid(2SSL) |     Donchian14 |       Don+BB14 
+  ------------------------------------------------------------------------------
+  [BTC]
+  Signals/day     |           1.02 |           1.22 |           1.93 |           0.49 
+  Win rate %      |           47.5 |           47.9 |           47.0 |           58.6 
+  EV/signal £     |         -2.614 |         -2.528 |         -2.487 |         -2.446 
+  EV/signal %     |         -0.871 |         -0.843 |         -0.829 |         -0.815 
+  Max consec loss |             19 |             22 |             41 |             24 
+  False signal %  |             43 |             45 |             56 |             48 
+  [ETH]
+  Signals/day     |            n/a |            n/a |           1.81 |           0.59 
+  Win rate %      |            n/a |            n/a |           45.4 |           57.1 
+  EV/signal £     |            n/a |            n/a |         -2.608 |         -2.513 
+  EV/signal %     |            n/a |            n/a |         -0.869 |         -0.838 
+  Max consec loss |            n/a |            n/a |             51 |             22 
+  False signal %  |            n/a |            n/a |             58 |             49 
+
+  NOTE: win rate = price moved in signal direction at 1h (gross); EV = net of 0.82% Kraken taker round-trip at £300 notional.
+  Signal = rising edge (condition true now, false prior bar). Donchian is close-based + daily-SSL filter.
