@@ -23,6 +23,18 @@ MIN_TMO_FOR_ENTRY       = 0.21   # TMO entry threshold -- lowered ~30% for crypt
 # old "choppy market" check. Uses the shared BTC 5m ATR (GBP): too flat = nothing
 # to scalp; too extreme = flash crash/pump, too risky. BACKTEST-PROVISIONAL --
 # Nick sign-off 18 Jul (thresholds 50/800); review after 2 weeks.
+# COMMISSION 016 (27 Jul 2026, Nick-approved): the floor/ceiling are now a PERCENTAGE
+# of the current BTC price, so they auto-scale as BTC re-prices over time instead of
+# drifting relative to a fixed GBP constant. Per bar:
+#     atr_floor_gbp   = btc_price * BTC_VOLATILITY_FLOOR_PCT / 100
+#     atr_ceiling_gbp = btc_price * VOLATILITY_CEILING_PCT   / 100
+# Behaviour-neutral at today's price (0.10% of ~£48.8k = ~£48.8 ~ the old £50 floor;
+# 1.65% of ~£48.8k = ~£806 ~ the old £800 ceiling). The gate still reads the SHARED
+# BTC 5m ATR for both engines (BTC-led, unchanged).
+BTC_VOLATILITY_FLOOR_PCT = 0.10   # BTC 5m ATR floor as % of BTC price (was fixed £50)
+VOLATILITY_CEILING_PCT   = 1.65   # BTC 5m ATR ceiling as % of BTC price (was fixed £800)
+# Legacy fixed GBP thresholds -- fallback ONLY when the BTC price is unavailable
+# (e.g. backtest / calibration scripts / first tick before a price is published).
 ATR_VOL_FLOOR_GBP       = 50.0   # below this BTC 5m ATR -> flat, block (nothing to scalp)
 ATR_VOL_CEILING_GBP     = 800.0  # above this BTC 5m ATR -> extreme, block (too risky)
 CHOPPY_RSI_THRESHOLD    = 5.0    # RSI near zero = choppy
@@ -362,24 +374,32 @@ def check_5m_tmo_momentum(bar_1h: pd.Series, bar_5m: pd.Series) -> dict:
     return _pass()
 
 
-def check_volatility_range(btc_atr) -> dict:
-    """Volatility-range gate (Change 3B). btc_atr is the shared BTC 5m ATR in GBP.
-    Blocks when volatility is too low (flat -- nothing to scalp) or too high
-    (flash crash/pump -- too risky). None -> no data, allow (e.g. backtest, or the
-    first ETH tick before the BTC engine has published an ATR)."""
+def check_volatility_range(btc_atr, btc_price=None) -> dict:
+    """Volatility-range gate (Change 3B; Commission 016 auto-scaling, 27 Jul 2026).
+    btc_atr is the shared BTC 5m ATR in GBP; btc_price is the current BTC price (GBP).
+    The floor/ceiling are a % of btc_price so they auto-scale with price; when btc_price
+    is unavailable (backtest / calibration / first tick before a price is published) we
+    fall back to the legacy fixed GBP thresholds. Blocks when volatility is too low
+    (flat -- nothing to scalp) or too high (flash crash/pump -- too risky). None ATR ->
+    no data, allow (e.g. backtest, or the first ETH tick before the BTC engine ticks)."""
     if btc_atr is None or pd.isna(btc_atr):
         return _pass()
     atr = float(btc_atr)
-    if atr < ATR_VOL_FLOOR_GBP:
+    if btc_price is not None and not pd.isna(btc_price) and float(btc_price) > 0:
+        floor   = float(btc_price) * BTC_VOLATILITY_FLOOR_PCT / 100.0
+        ceiling = float(btc_price) * VOLATILITY_CEILING_PCT   / 100.0
+    else:
+        floor, ceiling = ATR_VOL_FLOOR_GBP, ATR_VOL_CEILING_GBP
+    if atr < floor:
         return _fail(
             f"Volatility too low -- BTC 5m ATR GBP {atr:.1f} < floor GBP "
-            f"{ATR_VOL_FLOOR_GBP:.0f}. Flat market, nothing to scalp.",
+            f"{floor:.1f}. Flat market, nothing to scalp.",
             block_direction="BOTH",
         )
-    if atr > ATR_VOL_CEILING_GBP:
+    if atr > ceiling:
         return _fail(
             f"Volatility too high -- BTC 5m ATR GBP {atr:.1f} > ceiling GBP "
-            f"{ATR_VOL_CEILING_GBP:.0f}. Extreme conditions (flash crash/pump), "
+            f"{ceiling:.1f}. Extreme conditions (flash crash/pump), "
             f"too risky to scalp.",
             block_direction="BOTH",
         )
@@ -606,6 +626,7 @@ def run_all_pre_checks(
     current_trade=None,
     bar_1d: Optional[pd.Series] = None,
     btc_atr=None,
+    btc_price=None,
 ) -> dict:
     """
     Run every pre-check in order.
@@ -642,7 +663,7 @@ def run_all_pre_checks(
             ("Candle colour",         lambda: check_candle_colour(bar_1h, bar_5m)),
             ("5m TMO momentum",       lambda: check_5m_tmo_momentum(bar_1h, bar_5m)),
             # Volatility range (Change 3B) replaces the old "Choppy market" check.
-            ("Volatility range",      lambda: check_volatility_range(btc_atr)),
+            ("Volatility range",      lambda: check_volatility_range(btc_atr, btc_price)),
             ("RSI agreement",         lambda: check_rsi_agrees_with_ssl(bar_1h, bar_5m)),
         ]
 

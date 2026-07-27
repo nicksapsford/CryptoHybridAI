@@ -22,6 +22,18 @@ MIN_TMO_FOR_ENTRY       = 0.21   # lowered ~30% for crypto scalping (18 Jul 2026
 # Volatility-range gate (System 2 Review, Change 3B). Uses the SHARED BTC 5m ATR
 # (GBP) for both engines -- crypto volatility is BTC-led, mirroring the BTC-led
 # regime. BACKTEST-PROVISIONAL (thresholds 50/800); review after 2 weeks.
+# COMMISSION 016 (27 Jul 2026, Nick-approved): the floor/ceiling are now a PERCENTAGE
+# of the current BTC price so they auto-scale as BTC re-prices. Per bar:
+#     atr_floor_gbp   = btc_price * ETH_VOLATILITY_FLOOR_PCT / 100
+#     atr_ceiling_gbp = btc_price * VOLATILITY_CEILING_PCT   / 100
+# ETH uses a slightly higher floor % than BTC (its ATR%-of-price distribution sits
+# higher). NOTE: the "ETH blocked 100%" figure in Commission 015/016 was a HARNESS
+# artifact (the backtest applied the floor to ETH's OWN ATR); in production this gate
+# reads the SHARED BTC 5m ATR for BOTH engines, so ETH was never blocked in the live
+# system. Floor/ceiling both scale off the BTC price accordingly.
+ETH_VOLATILITY_FLOOR_PCT = 0.125  # BTC 5m ATR floor as % of BTC price for ETH (was fixed £50)
+VOLATILITY_CEILING_PCT   = 1.65   # BTC 5m ATR ceiling as % of BTC price (was fixed £800)
+# Legacy fixed GBP thresholds -- fallback ONLY when the BTC price is unavailable.
 ATR_VOL_FLOOR_GBP       = 50.0
 ATR_VOL_CEILING_GBP     = 800.0
 CHOPPY_RSI_THRESHOLD    = 5.0
@@ -303,23 +315,31 @@ def check_5m_tmo_momentum(bar_1h: pd.Series, bar_5m: pd.Series) -> dict:
     return _pass()
 
 
-def check_volatility_range(btc_atr) -> dict:
-    """Volatility-range gate (Change 3B). btc_atr is the SHARED BTC 5m ATR in GBP
-    (crypto volatility is BTC-led). Blocks when too flat (nothing to scalp) or too
-    extreme (flash crash/pump). None -> allow (no data yet / backtest)."""
+def check_volatility_range(btc_atr, btc_price=None) -> dict:
+    """Volatility-range gate (Change 3B; Commission 016 auto-scaling, 27 Jul 2026).
+    btc_atr is the SHARED BTC 5m ATR in GBP (crypto volatility is BTC-led); btc_price
+    is the current BTC price (GBP). The floor/ceiling are a % of btc_price so they
+    auto-scale with price; when btc_price is unavailable (backtest / first tick) we
+    fall back to the legacy fixed GBP thresholds. Blocks when too flat (nothing to
+    scalp) or too extreme (flash crash/pump). None ATR -> allow (no data yet)."""
     if btc_atr is None or pd.isna(btc_atr):
         return _pass()
     atr = float(btc_atr)
-    if atr < ATR_VOL_FLOOR_GBP:
+    if btc_price is not None and not pd.isna(btc_price) and float(btc_price) > 0:
+        floor   = float(btc_price) * ETH_VOLATILITY_FLOOR_PCT / 100.0
+        ceiling = float(btc_price) * VOLATILITY_CEILING_PCT   / 100.0
+    else:
+        floor, ceiling = ATR_VOL_FLOOR_GBP, ATR_VOL_CEILING_GBP
+    if atr < floor:
         return _fail(
             f"Volatility too low -- BTC 5m ATR GBP {atr:.1f} < floor GBP "
-            f"{ATR_VOL_FLOOR_GBP:.0f}. Flat market, nothing to scalp.",
+            f"{floor:.1f}. Flat market, nothing to scalp.",
             block_direction="BOTH",
         )
-    if atr > ATR_VOL_CEILING_GBP:
+    if atr > ceiling:
         return _fail(
             f"Volatility too high -- BTC 5m ATR GBP {atr:.1f} > ceiling GBP "
-            f"{ATR_VOL_CEILING_GBP:.0f}. Extreme conditions, too risky to scalp.",
+            f"{ceiling:.1f}. Extreme conditions, too risky to scalp.",
             block_direction="BOTH",
         )
     return _pass()
@@ -484,6 +504,7 @@ def run_all_pre_checks(
     current_trade=None,
     bar_1d: Optional[pd.Series] = None,
     btc_atr=None,
+    btc_price=None,
 ) -> dict:
     """
     Run every ETH pre-check in order.
@@ -514,7 +535,7 @@ def run_all_pre_checks(
             ("1h TMO vs SSL",         lambda: check_1h_tmo_agrees_with_ssl(bar_1h)),
             ("Candle colour",         lambda: check_candle_colour(bar_1h, bar_5m)),
             ("5m TMO momentum",       lambda: check_5m_tmo_momentum(bar_1h, bar_5m)),
-            ("Volatility range",      lambda: check_volatility_range(btc_atr)),
+            ("Volatility range",      lambda: check_volatility_range(btc_atr, btc_price)),
             ("RSI agreement",         lambda: check_rsi_agrees_with_ssl(bar_1h, bar_5m)),
         ]
 

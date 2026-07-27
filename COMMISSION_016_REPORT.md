@@ -98,3 +98,35 @@ VOLATILITY_CEILING_PCT     = 1.65    # was £800 (=1.646% at £48.8k); ETH ceili
 ```
 ```
 *Evidence supports the recalibration. Awaiting Nick/Archie brief before any live change (Rule 4).*
+
+---
+
+## CORRECTION & IMPLEMENTATION NOTE — 2026-07-27 (Cody)
+**IMPLEMENTED (Nick-approved).** The %-of-price floor/ceiling shipped to CryptoTrader (5001,
+v1.14.0), CryptoBenchmark (5021, v1.3.0) and CryptoHybrid (5041, v1.1.0):
+`BTC_VOLATILITY_FLOOR_PCT=0.10`, `ETH_VOLATILITY_FLOOR_PCT=0.125`, `VOLATILITY_CEILING_PCT=1.65`;
+per bar `atr_floor_gbp = btc_price * FLOOR_PCT/100`, `atr_ceiling_gbp = btc_price * CEILING_PCT/100`.
+
+**CORRECTION — the "ETH blocks 100%" premise was a HARNESS ARTIFACT, not a production defect.**
+§1/§2 treat the fixed £50 floor as 3.448% of ETH's *own* price (£1,450) and conclude ETH is
+blocked 100%. That is how the **backtest harness** evaluated it (ETH's own ATR vs the floor). The
+**live/production code does NOT do this**: the volatility gate reads the **SHARED BTC 5m ATR** for
+BOTH engines (BTC-led by design), so ETH passes/fails on the same BTC ATR reading as BTC and was
+**never blocked in production**. Consequences:
+- The headline "unlocks ETH from 0 to ~1.4 signals/day" (§1, §3, §5) is a harness projection on
+  ETH's own ATR; it does **not** describe the live change. The real production change is a modest
+  re-scaling of the shared BTC-ATR thresholds.
+- Because the gate uses the BTC price, the ETH floor (0.125%) and ceiling (1.65%) are applied to
+  the **BTC** price too — e.g. at BTC £48.8k the ETH floor is ~£61 (not ~£1.8), the ceiling ~£806
+  (not ~£24). The "ETH ceiling ~£24 never binds" note in §5 reflects the harness (ETH-price) model.
+- Verified live no-op at BTC £48,848.70 / 5m ATR £47.1 (07:42 UTC 27 Jul): BTC floor £48.85 (was
+  £50), ceiling £806 (was £800) — negligible; **ETH floor £61.06 (was £50)** — a small tightening
+  of ~£11 on the shared BTC ATR (blocks ETH only when the BTC ATR sits in the £50–£61 band).
+  At the live ATR both gates classify identically to before.
+
+**FLAG for Nick/Archie:** given the shared-BTC-ATR reality, setting the ETH floor (0.125%) *higher*
+than the BTC floor (0.10%) makes ETH strictly **more** selective than BTC on the *identical* signal
+— the opposite of the "ETH sits higher so needs a higher floor" rationale, which was based on ETH's
+own (harness) ATR distribution. Shipped as specified (approved, and conservative), but if ETH-equal-
+to-BTC selectivity is preferred, set `ETH_VOLATILITY_FLOOR_PCT=0.10` to match BTC. Dormant until
+Nick restarts — his call at restart.

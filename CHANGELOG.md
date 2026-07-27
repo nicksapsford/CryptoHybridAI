@@ -1,3 +1,19 @@
+## [1.1.0] - 2026-07-27  —  Commission 016: BTC-ATR volatility floor/ceiling auto-scaling
+### Changed — volatility-range gate thresholds are now a % of BTC price (was fixed GBP)
+- Gaius Commission 016 (Nick-approved) — this is the hybrid where evidence-based changes land.
+  The shared BTC-ATR volatility floor/ceiling (`ATR_VOL_FLOOR_GBP=50`, `ATR_VOL_CEILING_GBP=800`)
+  are now computed per bar as a **percentage of the current BTC price** so they auto-scale:
+  `atr_floor_gbp = btc_price * FLOOR_PCT/100`, `atr_ceiling_gbp = btc_price * CEILING_PCT/100`.
+- New constants: `BTC_VOLATILITY_FLOOR_PCT=0.10`, `ETH_VOLATILITY_FLOOR_PCT=0.125`, shared
+  `VOLATILITY_CEILING_PCT=1.65`. Gate still reads the SHARED BTC 5m ATR for both engines.
+- `regime.py`: new `set_btc_price()`/`get_btc_price()`; `check_volatility_range()` +
+  `run_all_pre_checks()` gained a `btc_price` param (legacy-GBP fallback when price unavailable).
+- Behaviour-neutral at today's price (BTC floor £48.85 vs old £50, ceiling £806 vs £800; ETH
+  floor £61.06 vs £50). At the live 5m ATR (£47.1) both gates classify identically.
+- CORRECTION appended to COMMISSION_015_REPORT.md and COMMISSION_016_REPORT.md: the
+  "ETH blocked 100%" finding was a HARNESS artifact (backtest applied the floor to ETH's OWN
+  ATR); production reads the shared BTC ATR for both engines, so ETH was never blocked live.
+
 ## [1.9.0] - 2026-07-23  —  Ladder rescale + MAE/MFE logging (Commission 009)
 ### Fixed — Profit Protection Ladder rescaled for the scalping regime
 - Gaius Commission 009 found the ladder had been INACTIVE since the 18 Jul scalping

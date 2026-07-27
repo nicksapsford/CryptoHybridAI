@@ -126,7 +126,7 @@ def run_individual_pre_checks(bar_1h, bar_5m, account, current_trade, bar_1d=Non
         checks["1h TMO OK"]        = check_1h_tmo_agrees_with_ssl(bar_1h)["passed"]
         checks["Candle Confirmed"] = check_candle_colour(bar_1h, bar_5m)["passed"]
         checks["Momentum Strong"]  = check_5m_tmo_momentum(bar_1h, bar_5m)["passed"]
-        checks["Volatility OK"]    = check_volatility_range(regime_mod.get_btc_atr())["passed"]
+        checks["Volatility OK"]    = check_volatility_range(regime_mod.get_btc_atr(), regime_mod.get_btc_price())["passed"]
         checks["RSI Confirming"]   = check_rsi_agrees_with_ssl(bar_1h, bar_5m)["passed"]
     else:
         checks["Daily Trend OK"]   = None
@@ -192,7 +192,7 @@ def run_individual_pre_checks_eth(bar_1h, bar_5m, account, current_trade, bar_1d
         checks["1h TMO OK"]        = eth_check_1h_tmo_agrees_with_ssl(bar_1h)["passed"]
         checks["Candle Confirmed"] = eth_check_candle_colour(bar_1h, bar_5m)["passed"]
         checks["Momentum Strong"]  = eth_check_5m_tmo_momentum(bar_1h, bar_5m)["passed"]
-        checks["Volatility OK"]    = eth_check_volatility_range(regime_mod.get_btc_atr())["passed"]
+        checks["Volatility OK"]    = eth_check_volatility_range(regime_mod.get_btc_atr(), regime_mod.get_btc_price())["passed"]
         checks["RSI Confirming"]   = eth_check_rsi_agrees_with_ssl(bar_1h, bar_5m)["passed"]
     else:
         checks["Short Only Mode"]  = None
@@ -476,6 +476,9 @@ def run_candle_tick(feed, trader, account, tick_count):
     # BTC and ETH engines (System 2 Review, Change 3B). BTC runs before ETH each cycle.
     btc_atr = bar_5m.get("atr")
     regime_mod.set_btc_atr(btc_atr)
+    # Publish the BTC price too (Commission 016): the shared volatility floor/ceiling
+    # are now a % of this price, read by BOTH the BTC and ETH gates.
+    regime_mod.set_btc_price(current_price)
 
     # Economic calendar hard block -- 15-min post-event volatility window
     hard_blocked, block_reason, ev_name, remain_mins = economic_calendar.is_hard_blocked()
@@ -509,7 +512,7 @@ def run_candle_tick(feed, trader, account, tick_count):
     pre_checks    = run_individual_pre_checks(bar_1h, bar_5m, account, current_trade, bar_1d)
 
     was_killed    = account.get("killed", False)
-    pre_result    = run_all_pre_checks(bar_1h, bar_5m, account, current_trade, bar_1d, btc_atr)
+    pre_result    = run_all_pre_checks(bar_1h, bar_5m, account, current_trade, bar_1d, btc_atr, current_price)
     is_killed_now = account.get("killed", False)
 
     # Detect a freshly triggered kill switch and notify
@@ -826,7 +829,8 @@ def run_candle_tick_eth(eth_feed, eth_trader, eth_account, tick_count):
     # Shared BTC-led volatility gate: ETH uses the BTC 5m ATR published by the BTC
     # tick earlier this cycle (System 2 Review, Change 3B).
     pre_result    = eth_run_all_pre_checks(bar_1h, bar_5m, eth_account, current_trade,
-                                           bar_1d, regime_mod.get_btc_atr())
+                                           bar_1d, regime_mod.get_btc_atr(),
+                                           regime_mod.get_btc_price())
     is_killed_now = eth_account.get("killed", False)
 
     if not was_killed and is_killed_now:

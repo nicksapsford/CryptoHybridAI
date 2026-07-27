@@ -48,6 +48,25 @@ def get_btc_atr():
     return _btc_atr["value"]
 
 
+# Latest BTC price (GBP), published by the BTC engine each tick alongside the ATR.
+# Read by BOTH volatility gates so the floor/ceiling can auto-scale as a % of price
+# (Commission 016, 27 Jul 2026), mirroring the shared BTC-led ATR above.
+_btc_price = {"value": None}
+
+
+def set_btc_price(value) -> None:
+    """Publish the latest BTC price (GBP) for the shared %-of-price volatility gate."""
+    try:
+        _btc_price["value"] = None if value is None else float(value)
+    except (TypeError, ValueError):
+        _btc_price["value"] = None
+
+
+def get_btc_price():
+    """Latest BTC price (GBP), or None if not yet published this run."""
+    return _btc_price["value"]
+
+
 def _classify(btc_above_200ma: bool, fear_greed: float) -> str:
     """Bull only when BOTH conditions hold; otherwise Bear (Change 2 spec)."""
     if btc_above_200ma and fear_greed is not None and fear_greed >= FG_BULL_MIN:

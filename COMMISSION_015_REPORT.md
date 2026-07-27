@@ -88,3 +88,22 @@ the confidence bar; directional only.** ETH: no baseline signals to tag.
   any change lands on CryptoHybrid (5041).
 
 *No live systems were changed. Findings for Nick & Archie to decide on.*
+
+---
+
+## CORRECTION — 2026-07-27 (Cody, appended during the Commission 016 implementation)
+**The "ETH is 100% blocked by the £50 ATR floor" finding (Results — ETH; Findings #3;
+Recommendation) was a HARNESS ARTIFACT, not a production defect.** In the backtest harness the
+volatility gate was fed **ETH's OWN 5m ATR** (median ~£2.17 at ~£1,444) against the £50 floor,
+which of course rejects ~100% of bars. **In the live/production code the gate reads the SHARED
+BTC 5m ATR for BOTH engines** (`pre_checks_eth.check_volatility_range(btc_atr)` is called with
+`regime.get_btc_atr()`, the BTC engine's ATR — crypto volatility is BTC-led by design since the
+18 Jul System-2 rebuild). BTC's 5m ATR sits well above £50 (≈£62 median; £47.1 live at 07:42 UTC
+27 Jul), so **ETH was never blocked in the live system** — the ETH engine passed/failed the vol
+gate on exactly the same BTC ATR reading as the BTC engine.
+
+The frequency-fix recommendation still stands and was implemented under Commission 016 (27 Jul,
+Nick-approved: %-of-BTC-price floor/ceiling, BTC 0.10% / ETH 0.125% / ceiling 1.65%), but its
+effect is a modest re-scaling of the shared BTC-ATR thresholds, **not** an "unlock ETH from a
+100% block." The backtest's projected ETH signal counts (§3 of Commission 016) were computed on
+ETH's own ATR and so overstate the real production change.
