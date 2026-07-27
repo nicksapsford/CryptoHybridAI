@@ -26,12 +26,13 @@ MIN_TMO_FOR_ENTRY       = 0.21   # lowered ~30% for crypto scalping (18 Jul 2026
 # of the current BTC price so they auto-scale as BTC re-prices. Per bar:
 #     atr_floor_gbp   = btc_price * ETH_VOLATILITY_FLOOR_PCT / 100
 #     atr_ceiling_gbp = btc_price * VOLATILITY_CEILING_PCT   / 100
-# ETH uses a slightly higher floor % than BTC (its ATR%-of-price distribution sits
-# higher). NOTE: the "ETH blocked 100%" figure in Commission 015/016 was a HARNESS
-# artifact (the backtest applied the floor to ETH's OWN ATR); in production this gate
-# reads the SHARED BTC 5m ATR for BOTH engines, so ETH was never blocked in the live
-# system. Floor/ceiling both scale off the BTC price accordingly.
-ETH_VOLATILITY_FLOOR_PCT = 0.125  # BTC 5m ATR floor as % of BTC price for ETH (was fixed £50)
+# ETH floor % now MATCHES BTC (0.10%) -- Nick's decision 27 Jul 2026. The gate reads
+# the SHARED BTC 5m ATR for BOTH engines, so a higher ETH floor would make ETH strictly
+# MORE selective than BTC on the identical signal; equal % = equal selectivity. NOTE:
+# the "ETH blocked 100%" figure in Commission 015/016 was a HARNESS artifact (the
+# backtest applied the floor to ETH's OWN ATR); in production this gate reads the shared
+# BTC ATR for both engines, so ETH was never blocked in the live system.
+ETH_VOLATILITY_FLOOR_PCT = 0.10   # BTC 5m ATR floor as % of BTC price (matches BTC, 27 Jul)
 VOLATILITY_CEILING_PCT   = 1.65   # BTC 5m ATR ceiling as % of BTC price (was fixed £800)
 # Legacy fixed GBP thresholds -- fallback ONLY when the BTC price is unavailable.
 ATR_VOL_FLOOR_GBP       = 50.0

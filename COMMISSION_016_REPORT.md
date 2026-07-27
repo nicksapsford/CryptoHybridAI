@@ -127,6 +127,10 @@ BOTH engines (BTC-led by design), so ETH passes/fails on the same BTC ATR readin
 **FLAG for Nick/Archie:** given the shared-BTC-ATR reality, setting the ETH floor (0.125%) *higher*
 than the BTC floor (0.10%) makes ETH strictly **more** selective than BTC on the *identical* signal
 — the opposite of the "ETH sits higher so needs a higher floor" rationale, which was based on ETH's
-own (harness) ATR distribution. Shipped as specified (approved, and conservative), but if ETH-equal-
-to-BTC selectivity is preferred, set `ETH_VOLATILITY_FLOOR_PCT=0.10` to match BTC. Dormant until
-Nick restarts — his call at restart.
+own (harness) ATR distribution.
+
+**RESOLVED — 2026-07-27 (Nick):** set `ETH_VOLATILITY_FLOOR_PCT = 0.10` to **match BTC**. Equal %
+= equal selectivity on the shared BTC ATR (ETH floor now £48.85 = BTC floor at live price). Shipped
+across CryptoTrader (5001) v1.14.1, CryptoBenchmark (5021) v1.3.1, CryptoHybrid (5041) v1.1.1. The
+change vs the fixed-GBP baseline is now a clean near-no-op for both engines (floor £50→£48.85,
+ceiling £800→£806). Dormant until Nick restarts.

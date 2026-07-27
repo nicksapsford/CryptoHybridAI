@@ -1,3 +1,10 @@
+## [1.1.1] - 2026-07-27  —  ETH volatility floor matched to BTC (Nick's decision)
+### Changed
+- `ETH_VOLATILITY_FLOOR_PCT` 0.125 → **0.10** to match `BTC_VOLATILITY_FLOOR_PCT`. The gate reads
+  the SHARED BTC 5m ATR for both engines, so equal % = equal selectivity; a higher ETH floor
+  would make ETH strictly more selective than BTC on the identical signal. ETH floor now £48.85
+  = BTC floor at live price. COMMISSION_016_REPORT.md correction note updated to record this.
+
 ## [1.1.0] - 2026-07-27  —  Commission 016: BTC-ATR volatility floor/ceiling auto-scaling
 ### Changed — volatility-range gate thresholds are now a % of BTC price (was fixed GBP)
 - Gaius Commission 016 (Nick-approved) — this is the hybrid where evidence-based changes land.
